@@ -64,52 +64,62 @@ export default function TestEngine({ slug }: Props) {
   }
 
   // ---------------- state ----------------
-  const [testQuestions, setTestQuestions] = useState<Question[] | null>(null);
+  const [testQuestions, setTestQuestions] = useState<Question[]>(() => buildTest());
   const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
   const [finished, setFinished] = useState(false);
 
-  // ---------------- generate test ----------------
-  useEffect(() => {
+  // ---------------- reset test ----------------
+  function resetTest() {
     setTestQuestions(buildTest());
     setCurrent(0);
     setAnswers([]);
     setFinished(false);
+  }
+
+  useEffect(() => {
+    resetTest();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   // ---------------- guard ----------------
-  if (!testQuestions) {
-    return (
-      <div className="max-w-xl mx-auto py-20 text-center">
-        Preparing your assessment...
-      </div>
-    );
-  }
+  if (testQuestions.length === 0) {
+  return (
+    <div className="max-w-xl mx-auto py-20 text-center">
+      Preparing your assessment...
+    </div>
+  );
+}
 
-  // ---------------- actions ----------------
-  function handleAnswer(choice: number) {
+const q = testQuestions[current];
+if (!q) return null;
+
+// ---------------- actions ----------------
+function handleAnswer(choice: number) {
   const updated = [...answers];
   updated[current] = choice;
   setAnswers(updated);
 
-  
   if (current + 1 < testQuestions.length) {
     setCurrent((c) => c + 1);
   } else {
     setFinished(true);
   }
 }
+
 function handleBack() {
   if (current > 0) {
     setCurrent((c) => c - 1);
   }
 }
-  // ---------------- score helpers ----------------
-  function getScore() {
-    return answers.reduce((total, ans, i) => {
-      return ans === testQuestions[i].correct ? total + 1 : total;
-    }, 0);
-  }
+
+function getScore() {
+  return answers.reduce((total, ans, i) => {
+    const question = testQuestions[i];
+    if (!question) return total;
+    return ans === question.correct ? total + 1 : total;
+  }, 0);
+}
 
   function getLevel(score: number) {
     if (score <= 5) return "A1";
@@ -142,7 +152,7 @@ function handleBack() {
         </button>
 
         <button
-          onClick={() => window.location.reload()}
+          onClick={resetTest}
           className="cursor-pointer text-sm text-gray-500 hover:text-gray-700"
         >
           Retake test
@@ -155,7 +165,6 @@ function handleBack() {
   // ================= TEST SCREEN ==============================
   // ============================================================
 
-  const q = testQuestions[current];
   const progress = (current / testQuestions.length) * 100;
 
 
